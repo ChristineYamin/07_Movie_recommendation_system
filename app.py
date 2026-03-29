@@ -167,13 +167,12 @@ if get_rec:
                     )
 
 TMDB_API_KEY = "4db017d7f69398f91238d85a3fab3d43"
-
 def get_movie_poster(movie_title):
-    """Fetches the poster path from TMDB API"""
+    """Fetches the poster path from TMDB API."""
     try:
         url = f"https://api.themoviedb.org/3/search/movie?query={requests.utils.quote(movie_title)}"
         headers = {
-            "accept": "application/json"
+            "accept": "application/json",
             "Authorization": f"Bearer {TMDB_API_KEY}",
         }
         response = requests.get(url, headers=headers)
