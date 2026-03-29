@@ -1,6 +1,7 @@
 import ast
 import pandas as pd
 import streamlit as st
+import requests
 
 # Page config
 st.set_page_config(
@@ -124,7 +125,7 @@ if get_rec:
             # 🎯 Top movie highlight
             top_movie = recommendations.iloc[0]
 
-            # Custom HTML block for the top pick to make it look premium
+            # Custom HTML block
             st.markdown(
                 f"""
                 <div style="background-color: #fff4f4; padding: 25px; border-radius: 12px; border: 1px solid #ffccd2; margin-bottom: 25px;">
@@ -164,3 +165,24 @@ if get_rec:
                     """,
                         unsafe_allow_html=True,
                     )
+
+TMDB_API_KEY = "4db017d7f69398f91238d85a3fab3d43"
+
+def get_movie_poster(movie_title):
+    """Fetches the poster path from TMDB API"""
+    try:
+        url = f"https://api.themoviedb.org/3/search/movie?query={requests.utils.quote(movie_title)}"
+        headers = {
+            "accept": "application/json"
+            "Authorization": f"Bearer {TMDB_API_KEY}",
+        }
+        response = requests.get(url, headers=headers)
+        data = response.json()
+
+        if data["results"] and data["results"][0]["poster_path"]:
+            path = data["results"][0]["poster_path"]
+            return f"https://image.tmdb.org/t/p/w500{path}"
+    except Exception as e:
+        pass
+    # Fallback image if no poster is found
+    return "https://via.placeholder.com/500x750.png?text=No+Poster+Available"
