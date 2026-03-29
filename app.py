@@ -1,20 +1,50 @@
-import streamlit as st
-import pandas as pd
 import ast
+import pandas as pd
+import streamlit as st
 
 # Page config
 st.set_page_config(
-    page_title="Movie Recommendation System",
-    page_icon="🎬",
-    layout="wide"
+    page_title="Movie Recommendation System", page_icon="🎬", layout="wide"
 )
 
-#Load data
+# --- CUSTOM CSS FOR MINIMALIST VIBE ---
+st.markdown(
+    """
+    <style>
+    /* Soften the edges of buttons */
+    .stButton>button {
+        border-radius: 20px !important;
+        transition: all 0.3s ease;
+    }
+    /* Style custom movie cards */
+    .movie-card {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #eaeaea;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        margin-bottom: 15px;
+    }
+    .movie-card:hover {
+        border-color: #ff4b4b;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+    </style>
+""",
+    unsafe_allow_html=True,
+)
+
+
+# Load data
 @st.cache_data
 def load_data():
-    df = pd.read_csv("C:/Projects/07_Movie_Recommendation_System/data/movies_dataset_cleaned.csv")
+    # Note: Keep an eye on this absolute path if you share or deploy your app!
+    df = pd.read_csv(
+        "C:/Projects/07_Movie_Recommendation_System/data/movies_dataset_cleaned.csv"
+    )
     df["genres"] = df["genres"].apply(ast.literal_eval)
     return df
+
 
 movies_df = load_data()
 
@@ -22,14 +52,14 @@ movies_df = load_data()
 # Get all unique genres
 all_genres = sorted(
     set(
-        genre 
+        genre
         for genres_list in movies_df["genres"]
         for genre in genres_list
-
     )
 )
 
-# Recommendatipn function
+
+# Recommendation function
 def recommend_by_genres_v2(selected_genres, df, top_n=10):
     temp_df = df.copy()
 
@@ -40,72 +70,97 @@ def recommend_by_genres_v2(selected_genres, df, top_n=10):
     temp_df = temp_df[temp_df["genre_match_count"] > 0]
 
     temp_df = temp_df.sort_values(
-        by=["genre_match_count", "vote_average", "popularity"],
-        ascending=False
+        by=["genre_match_count", "vote_average", "popularity"], ascending=False
     )
 
     temp_df = temp_df.drop_duplicates(subset=["title"])
 
-    return temp_df[[
-        "title",
-        "genres",
-        "genre_match_count",
-        "vote_average",
-        "popularity",
-        "release_date"
-    ]].head(top_n)
+    return temp_df[
+        [
+            "title",
+            "genres",
+            "genre_match_count",
+            "vote_average",
+            "popularity",
+            "release_date",
+        ]
+    ].head(top_n)
+
 
 # App UI
 st.title("🎬 Personalized Movie Recommendation System")
 st.write(
-    "Select your favourite genres and get movie recommendations based on genre match, rating and popularity."
+    "Select your favorite genres and get movie recommendations based on genre match, rating, and popularity."
 )
 
 selected_genres = st.multiselect(
-    "Choose your favourite genres:",
-    options=all_genres
+    "Choose your favorite genres:", options=all_genres
 )
 
 top_n = st.slider(
-    "Number of recommendations:",
-    min_value=5,
-    max_value=20,
-    value=10
+    "Number of recommendations:", min_value=5, max_value=20, value=10
 )
 
-if st.button("Get Recommendations"):
+# Pre-define columns for the button to prevent full-width stretching
+col_btn, _ = st.columns([1, 5])
+with col_btn:
+    get_rec = st.button("Get Recommendations", use_container_width=True)
+
+if get_rec:
     if not selected_genres:
         st.warning("Please select at least one genre.")
     else:
-        recommendations = recommend_by_genres_v2(selected_genres, movies_df, top_n)
+        recommendations = recommend_by_genres_v2(
+            selected_genres, movies_df, top_n
+        )
 
         if recommendations.empty:
             st.error("No recommendations found for the selected genres.")
         else:
-            # 🎯 Success message
-            st.success(f"Showing top {top_n} recommendations based on your selected genres 🎯")
+            st.success(
+                f"Showing top {top_n} recommendations based on your selected genres 🎯"
+            )
 
-            # 🎯 Top movie highlight (use original column names here)
+            # 🎯 Top movie highlight
             top_movie = recommendations.iloc[0]
-            st.markdown(f"""
-            ## 🌟 Top Pick: {top_movie['title']}
-            ⭐ Rating: {top_movie['vote_average']}
-            🔥 Popularity: {top_movie['popularity']}
-            """)
 
-            # 🎯 Convert genres list to string
-            recommendations["genres"] = recommendations["genres"].apply(lambda x: ", ".join(x))
+            # Custom HTML block for the top pick to make it look premium
+            st.markdown(
+                f"""
+                <div style="background-color: #fff4f4; padding: 25px; border-radius: 12px; border: 1px solid #ffccd2; margin-bottom: 25px;">
+                    <h2 style="margin-top:0; color: #ff4b4b;">🌟 Top Pick: {top_movie['title']}</h2>
+                    <p style="margin-bottom:5px;"><b>⭐ Rating:</b> {top_movie['vote_average']} | <b>🔥 Popularity:</b> {top_movie['popularity']}</p>
+                    <p style="margin-bottom:0; color: #555;"><b>🏷️ Genres:</b> {', '.join(top_movie['genres'])}</p>
+                </div>
+            """,
+                unsafe_allow_html=True,
+            )
 
-            # 🎯 Rename columns (AFTER using original names)
-            recommendations = recommendations.rename(columns={
-                "title": "Movie",
-                "genres": "Genres",
-                "genre_match_count": "Match Score",
-                "vote_average": "Rating ⭐",
-                "popularity": "Popularity 🔥",
-                "release_date": "Release Date"
-            })
+            st.subheader("Recommend Movies")
 
-            # 🎯 Remove index + display
-            st.subheader("Recommended Movies")
-            st.dataframe(recommendations.reset_index(drop=True), use_container_width=True)
+            # 🎯 Displaying the rest as interactive "Cards" instead of a table
+            for index, row in recommendations.reset_index(drop=True).iterrows():
+                # Skip the top movie since we highlighted it above
+                if index == 0:
+                    continue
+
+                genres_str = ", ".join(row["genres"])
+                # Extract year safely
+                release_year = (
+                    row["release_date"][:4]
+                    if pd.notna(row["release_date"])
+                    else "N/A"
+                )
+
+                # Streamlit structure for the card
+                with st.container():
+                    st.markdown(
+                        f"""
+                        <div class="movie-card">
+                            <h4 style="margin: 0; color: #2c3e50;">{row['title']} <span style="font-size: 14px; color: #7f8c8d;">({release_year})</span></h4>
+                            <p style="margin: 5px 0; font-size: 14px; color: #555;">⭐ <b>{row['vote_average']}</b> | Genres: {genres_str}</p>
+                            <p style="margin: 0; font-size: 12px; color: #95a5a6;">Match Score: {row['genre_match_count']} | Popularity: {row['popularity']}</p>
+                        </div>
+                    """,
+                        unsafe_allow_html=True,
+                    )
