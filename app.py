@@ -58,7 +58,7 @@ def recommend_by_genres_v2(selected_genres, df, top_n=10):
 # App UI
 st.title("🎬 Personalized Movie Recommendation System")
 st.write(
-    "Select your favourite genres and get movie recommendations based on genre match, ratingg and popularity."
+    "Select your favourite genres and get movie recommendations based on genre match, rating and popularity."
 )
 
 selected_genres = st.multiselect(
@@ -67,7 +67,7 @@ selected_genres = st.multiselect(
 )
 
 top_n = st.slider(
-    "Number od recommendations:",
+    "Number of recommendations:",
     min_value=5,
     max_value=20,
     value=10
@@ -75,13 +75,37 @@ top_n = st.slider(
 
 if st.button("Get Recommendations"):
     if not selected_genres:
-        st.warning("Please select at least one genre")
+        st.warning("Please select at least one genre.")
     else:
         recommendations = recommend_by_genres_v2(selected_genres, movies_df, top_n)
 
         if recommendations.empty:
             st.error("No recommendations found for the selected genres.")
         else:
-            st.subheader("Recomend Movies")
-            recommendations["genres"] = recommendations["genres"].apply(lambda x:", ".join(x))
-            st.dataframe(recommendations, use_container_width=True)
+            # 🎯 Success message
+            st.success(f"Showing top {top_n} recommendations based on your selected genres 🎯")
+
+            # 🎯 Top movie highlight (use original column names here)
+            top_movie = recommendations.iloc[0]
+            st.markdown(f"""
+            ## 🌟 Top Pick: {top_movie['title']}
+            ⭐ Rating: {top_movie['vote_average']}
+            🔥 Popularity: {top_movie['popularity']}
+            """)
+
+            # 🎯 Convert genres list to string
+            recommendations["genres"] = recommendations["genres"].apply(lambda x: ", ".join(x))
+
+            # 🎯 Rename columns (AFTER using original names)
+            recommendations = recommendations.rename(columns={
+                "title": "Movie",
+                "genres": "Genres",
+                "genre_match_count": "Match Score",
+                "vote_average": "Rating ⭐",
+                "popularity": "Popularity 🔥",
+                "release_date": "Release Date"
+            })
+
+            # 🎯 Remove index + display
+            st.subheader("Recommended Movies")
+            st.dataframe(recommendations.reset_index(drop=True), use_container_width=True)
