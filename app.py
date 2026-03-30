@@ -1,6 +1,7 @@
 import ast
 import pandas as pd
 import requests
+from pathlib import Path
 import streamlit as st
 
 # 1. PAGE CONFIGURATION
@@ -51,11 +52,12 @@ st.markdown(
 
 
 # 3. LOAD DATA
+BASE_DIR = Path(__file__).resolve().parent
+
 @st.cache_data
 def load_data():
-    df = pd.read_csv(
-        "C:/Projects/07_Movie_Recommendation_System/data/movies_dataset_cleaned.csv"
-    )
+    file_path = BASE_DIR / "data" / "movies_dataset_cleaned.csv"
+    df = pd.read_csv(file_path)
     df["genres"] = df["genres"].apply(ast.literal_eval)
     return df
 
