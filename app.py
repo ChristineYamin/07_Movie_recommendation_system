@@ -30,6 +30,20 @@ st.markdown(
         border-color: #ff4b4b;
         box-shadow: 0 4px 8px rgba(0,0,0,0.05);
     }
+    /* Poster hover effect */
+    img:hover {
+        transform: scale(1.05);
+        transition: 0.3s;
+    }
+    .movie-poster {
+        border-radius: 6px;
+        width: 100%;
+        transition: 0.3s;
+    }
+    .movie-poster:hover {
+        transform: scale(1.05);
+    
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -39,7 +53,6 @@ st.markdown(
 # 3. LOAD DATA
 @st.cache_data
 def load_data():
-    # Note: Keep an eye on this absolute path if you share or deploy your app!
     df = pd.read_csv(
         "C:/Projects/07_Movie_Recommendation_System/data/movies_dataset_cleaned.csv"
     )
@@ -53,27 +66,27 @@ movies_df = load_data()
 # 4. TMDB SETUP & POSTER FETCHING FUNCTION
 TMDB_API_KEY = "4db017d7f69398f91238d85a3fab3d43"
 
-
 def get_movie_poster(movie_title):
-    """Fetches the poster path from TMDB API."""
+    """Fetch poster URL from TMDB API using movie title."""
     try:
-        url = f"https://api.themoviedb.org/3/search/movie?query={requests.utils.quote(movie_title)}"
-        headers = {
-            "accept": "application/json",
-            "Authorization": f"Bearer {TMDB_API_KEY}",
+        url = "https://api.themoviedb.org/3/search/movie"
+        params = {
+            "api_key": TMDB_API_KEY,
+            "query": movie_title
         }
-        response = requests.get(url, headers=headers)
+
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
         data = response.json()
 
-        if data["results"] and data["results"][0]["poster_path"]:
-            path = data["results"][0]["poster_path"]
-            return f"https://image.tmdb.org/t/p/w500{path}"
-    except Exception as e:
+        if data.get("results") and data["results"][0].get("poster_path"):
+            poster_path = data["results"][0]["poster_path"]
+            return f"https://image.tmdb.org/t/p/w500{poster_path}"
+
+    except Exception:
         pass
-    # Fallback image if no poster is found
+
     return "https://via.placeholder.com/500x750.png?text=No+Poster+Available"
-
-
 # 5. GENRE EXTRACTION
 all_genres = sorted(
     set(
@@ -187,7 +200,7 @@ if get_rec:
 
                 with col_img:
                     st.markdown(
-                        f'<img src="{poster_url}" style="border-radius: 6px; width: 100%;">',
+                        f'<img src="{poster_url}" class="movie-poster"          >',
                         unsafe_allow_html=True,
                     )
 
@@ -196,7 +209,7 @@ if get_rec:
                         f"""
                         <div style="padding-left: 10px;">
                             <h4 style="margin: 0; color: #2c3e50;">{row['title']} <span style="font-size: 14px; color: #7f8c8d;">({release_year})</span></h4>
-                            <p style="margin: 5px 0; font-size: 14px; color: #555;">⭐ <b>{row['vote_average']}</b> | Genres: {genres_str}</p>
+                            <p style="margin: 5px 0; font-size: 14px; color: #555;">⭐ <b>{row['vote_average']:.1f}</b> | Genres: {genres_str}</p>
                             <p style="margin: 0; font-size: 12px; color: #95a5a6;">Match Score: {row['genre_match_count']} | Popularity: {row['popularity']}</p>
                         </div>
                     """,
